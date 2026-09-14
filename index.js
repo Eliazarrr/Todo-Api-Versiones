@@ -5,35 +5,42 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 8080;
 
+
+const ESTADOS_VALIDOS = ['PENDIENTE', 'EN PROGRESO', 'COMPLETADA'];
+const PRIORIDADES_VALIDAS = ['BAJA', 'MEDIA', 'ALTA'];
+
+
 let tareas = [
   {
     id: 1,
-    titulo: "Tarea de Ejemplo v1.0",
-    descripcion: "Probar el despliegue inicial en Docker",
-    estado: "PENDIENTE", // Estados válidos: PENDIENTE, EN PROGRESO, COMPLETADA
+    titulo: "Tarea de Ejemplo v2.0",
+    descripcion: "Probar actualización a versión 2.0 con Prioridad",
+    estado: "PENDIENTE",
+    prioridad: "ALTA", // <-- Nueva mejora funcional v2.0
     fechaCreacion: new Date().toISOString()
   }
 ];
 
 let contadorId = 2;
 
-const ESTADOS_VALIDOS = ['PENDIENTE', 'EN PROGRESO', 'COMPLETADA'];
 
-// Ruta base / Healthcheck / Mostrar versión
 app.get('/', (req, res) => {
   res.json({
-    mensaje: "API TodoList v1.0",
+    version: "TodoList v2.0", // <-- Etiqueta visible v2.0
     carnet: "24002799",
+    mejora: "Se agregó el campo de Prioridad (BAJA, MEDIA, ALTA)",
     estado: "Ejecutándose correctamente"
   });
 });
+
 
 app.get('/api/tareas', (req, res) => {
   res.json(tareas);
 });
 
+
 app.post('/api/tareas', (req, res) => {
-  const { titulo, descripcion, estado } = req.body;
+  const { titulo, descripcion, estado, prioridad } = req.body;
 
   if (!titulo || !descripcion) {
     return res.status(400).json({ error: "El título y la descripción son obligatorios." });
@@ -43,11 +50,16 @@ app.post('/api/tareas', (req, res) => {
     ? estado.toUpperCase() 
     : 'PENDIENTE';
 
+  const prioridadFinal = prioridad && PRIORIDADES_VALIDAS.includes(prioridad.toUpperCase()) 
+    ? prioridad.toUpperCase() 
+    : 'MEDIA';
+
   const nuevaTarea = {
     id: contadorId++,
     titulo,
     descripcion,
     estado: estadoFinal,
+    prioridad: prioridadFinal,
     fechaCreacion: new Date().toISOString()
   };
 
@@ -55,9 +67,10 @@ app.post('/api/tareas', (req, res) => {
   res.status(201).json(nuevaTarea);
 });
 
+// 3. ACTUALIZAR UNA TAREA (PUT)
 app.put('/api/tareas/:id', (req, res) => {
   const id = parseInt(req.params.id);
-  const { titulo, descripcion, estado } = req.body;
+  const { titulo, descripcion, estado, prioridad } = req.body;
 
   const tareaIndex = tareas.findIndex(t => t.id === id);
 
@@ -66,20 +79,24 @@ app.put('/api/tareas/:id', (req, res) => {
   }
 
   if (estado && !ESTADOS_VALIDOS.includes(estado.toUpperCase())) {
-    return res.status(400).json({ 
-      error: `Estado inválido. Los estados permitidos son: ${ESTADOS_VALIDOS.join(', ')}` 
-    });
+    return res.status(400).json({ error: `Estado inválido.` });
+  }
+
+  if (prioridad && !PRIORIDADES_VALIDAS.includes(prioridad.toUpperCase())) {
+    return res.status(400).json({ error: `Prioridad inválida. Opciones: BAJA, MEDIA, ALTA` });
   }
 
   tareas[tareaIndex] = {
     ...tareas[tareaIndex],
     titulo: titulo || tareas[tareaIndex].titulo,
     descripcion: descripcion || tareas[tareaIndex].descripcion,
-    estado: estado ? estado.toUpperCase() : tareas[tareaIndex].estado
+    estado: estado ? estado.toUpperCase() : tareas[tareaIndex].estado,
+    prioridad: prioridad ? prioridad.toUpperCase() : tareas[tareaIndex].prioridad
   };
 
   res.json(tareas[tareaIndex]);
 });
+
 
 app.delete('/api/tareas/:id', (req, res) => {
   const id = parseInt(req.params.id);
@@ -94,5 +111,5 @@ app.delete('/api/tareas/:id', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor ejecutándose en el puerto ${PORT}`);
+  console.log(`Servidor v2.0 ejecutándose en el puerto ${PORT}`);
 });
